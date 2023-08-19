@@ -36,7 +36,7 @@ userSchema.methods.getGuildAccount = function (guildId) {
     for (account of this.accounts)
         if (account.guild === guildId)
             return account
-    return { guild: guildId, balance: economyConfig.getUserInitBalance(), left: false, badges: [] }
+    return { guild: guildId, left: false, badges: [] }
 }
 
 const User = mongoose.model('User', userSchema)

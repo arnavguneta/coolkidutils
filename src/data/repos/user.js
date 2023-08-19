@@ -22,12 +22,6 @@ class UserRepository {
         return this.user
     }
 
-    async fetchGuildAccountById() {
-        await this.fetchById()
-        this.guildAccount = this.user.getGuildAccount(this.guildId);
-        return this._getData();
-    }
-
     async fetchByIdOrSync() {
         await this.fetchById()
         if (!this.user) {
