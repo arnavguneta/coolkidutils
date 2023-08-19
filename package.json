@@ -1,0 +1,43 @@
+{
+  "name": "coolkidutils",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/api/app.js",
+    "dev": "env-cmd nodemon --legacy-watch src/index.js -e js "
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@discordjs/rest": "^1.1.0",
+    "body-parser": "^1.20.0",
+    "bufferutil": "^4.0.6",
+    "chokidar": "^3.5.3",
+    "discord.js": "^14.8.0",
+    "discord.js-pagination": "^1.0.3",
+    "erlpack": "github:discord/erlpack",
+    "express": "^4.18.1",
+    "module-alias": "^2.2.2",
+    "mongoose": "^6.5.4",
+    "node-fetch": "^2.6.6",
+    "utf-8-validate": "^5.0.9",
+    "zlib-sync": "^0.1.7"
+  },
+  "devDependencies": {
+    "env-cmd": "^10.1.0",
+    "nodemon": "^2.0.19"
+  },
+  "_moduleAliases": {
+    "@root": "./src",
+    "@common": "./src/common",
+    "@features": "./src/features/features",
+    "@api": "./src/api",
+    "@config": "./src/config",
+    "@data": "./src/data",
+    "@db": "./src/data/db",
+    "@models": "./src/data/models",
+    "@repos": "./src/data/repos"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "commands": [],
+  "interactions": {
+    "duration": 3500
+  },
+  "cache": {
+    "expiration": 5000
+  },
+  "PADDING": 10000,
+  "SECONDS_IN_MS": 1000
+}
