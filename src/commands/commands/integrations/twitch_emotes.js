@@ -193,7 +193,7 @@ let create_emote = async (emote, emote_servers, twitch_user, interaction, emote_
         // return console.log(`${process.env.LOG_PREFIX} ERROR: ${emote.name} could not be added, either it is too big or no space left on the emote servers`)
     }
     // rate limit timer
-    await new Promise(r => setTimeout(r, Math.floor(Math.random() * 15000) + 7500));
+    await new Promise(r => setTimeout(r, Math.floor(Math.random() * 20000) + 10000));
     try {
         // add medium sized emote to the current server
         // console.log(current_server, get_emote_url(emote.website, emote.id, emote_size), emote.name)
