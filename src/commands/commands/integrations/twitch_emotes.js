@@ -139,7 +139,7 @@ module.exports = {
             
             emote_servers = emote_servers.reverse()
             interaction.reply({ content: "Updating emotes..." })
-            console.log(emotes, emote_servers, twitch_user.id)
+            // console.log(emotes, emote_servers, twitch_user.id)
 
             // if not added already, add the emote to a free server
             for (let emote_to_add of emotes) {
