@@ -201,7 +201,7 @@ let create_emote = async (emote, emote_servers, twitch_user, interaction, emote_
         let new_emote = new TwitchEmote({ name: created_emoji.name, id: created_emoji.id, animated: created_emoji.animated, channel: { id: twitch_user.id, name: twitch_user.display_name} })
         await new_emote.save()
         await interaction.channel.send(`Emote <${(new_emote.animated) ? 'a' : ''}:${new_emote.name}:${new_emote.id}> added to the emote servers`)
-        reset_state(twitch_user.id)
+        // reset_state(twitch_user.id)
         // console.log(`${process.env.LOG_PREFIX} INFO: Emote ${emote.name} added to server ${state[twitch_user.id].current_emoji_server+1}`)
     } catch (error) {
         if (error.message.includes('Maximum number of emojis reached')) { // maximum limit reached for normal servers, add it to the next server
