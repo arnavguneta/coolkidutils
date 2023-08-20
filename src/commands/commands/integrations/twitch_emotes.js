@@ -122,7 +122,7 @@ module.exports = {
                 let status_fetch = await fetch(links[website])
                 let status_data = await status_fetch.json()
                 let fetched_emotes = (website === 'bttv') ? [...status_data.channelEmotes, ...status_data.sharedEmotes] : status_data
-                for (let emote of fetched_emotes) emotes.push({ name: `${(emote.code) ? emote.code : emote.name}`, id: emote.id, website })
+                for (let emote of fetched_emotes) emotes.push({ name: `${(emote.code) ? emote.code : emote.name}`, id: emote.id, website, animated: website === 'stv' ? false : emote.animated })
             }
 
             // get list of emote servers
@@ -185,23 +185,24 @@ let reset_state = (id) => {
 
 // add given emote to a server from the server list or a specific server from the emote list
 let create_emote = async (emote, emote_servers, twitch_user, interaction, emote_size = 2, current_server = -1) => {
+    let emote_url = await get_emote_url(emote.website, emote.id, emote_size)
+    if (!emote.animated && emote_url.includes('.gif')) emote.animated = true
     // current server is the minimum of either the current normal emoji server or the animated server unless a specific server was provided
-    current_server = (current_server == -1) ? Math.min(state[twitch_user.id].current_emoji_server, state[twitch_user.id].current_animated_server) : current_server
+    current_server = (current_server == -1) ? (emote.animated) ? state[twitch_user.id].current_animated_server : state[twitch_user.id].current_emoji_server : current_server
     if (current_server >= emote_servers.length) {
         reset_state(twitch_user.id)
         return await interaction.channel.send(`Emote "${emote.name}" could not be added, either it is too big or no space is left on the emote servers`)
         // return console.log(`${process.env.LOG_PREFIX} ERROR: ${emote.name} could not be added, either it is too big or no space left on the emote servers`)
     }
     // rate limit timer
-    await new Promise(r => setTimeout(r, Math.floor(Math.random() * 20000) + 10000));
+    await new Promise(r => setTimeout(r, Math.floor(Math.random() * 15000) + 10000));
     try {
         // add medium sized emote to the current server
         // console.log(current_server, get_emote_url(emote.website, emote.id, emote_size), emote.name)
-        let created_emoji = await emote_servers[current_server].emojis.create({ attachment: await get_emote_url(emote.website, emote.id, emote_size), name: emote.name })
+        let created_emoji = await emote_servers[current_server].emojis.create({ attachment: emote_url, name: emote.name })
         let new_emote = new TwitchEmote({ name: created_emoji.name, id: created_emoji.id, animated: created_emoji.animated, channel: { id: twitch_user.id, name: twitch_user.display_name} })
         await new_emote.save()
-        await interaction.channel.send(`Emote <${(new_emote.animated) ? 'a' : ''}:${new_emote.name}:${new_emote.id}> added to the emote servers`)
-        // reset_state(twitch_user.id)
+        await interaction.channel.send(`Emote <${(new_emote.animated) ? 'a' : ''}:${new_emote.name}:${new_emote.id}> added to the "${emote_servers[current_server].name}" guild`)
         // console.log(`${process.env.LOG_PREFIX} INFO: Emote ${emote.name} added to server ${state[twitch_user.id].current_emoji_server+1}`)
     } catch (error) {
         if (error.message.includes('Maximum number of emojis reached')) { // maximum limit reached for normal servers, add it to the next server
