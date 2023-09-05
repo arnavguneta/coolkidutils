@@ -199,8 +199,8 @@ let create_emote = async (emote, emote_servers, twitch_user, interaction, emote_
     try {
         // add medium sized emote to the current server
         // console.log(current_server, get_emote_url(emote.website, emote.id, emote_size), emote.name)
-        let created_emoji = await emote_servers[current_server].emojis.create({ attachment: emote_url, name: emote.name })
-        let new_emote = new TwitchEmote({ name: created_emoji.name, id: created_emoji.id, animated: created_emoji.animated, channel: { id: twitch_user.id, name: twitch_user.display_name} })
+        let created_emoji = await emote_servers[current_server].emojis.create({ attachment: emote_url, name: emote.name.replaceAll('-','') })
+        let new_emote = new TwitchEmote({ name: emote.name, id: created_emoji.id, animated: created_emoji.animated, channel: { id: twitch_user.id, name: twitch_user.display_name} })
         await new_emote.save()
         await interaction.channel.send(`Emote <${(new_emote.animated) ? 'a' : ''}:${new_emote.name}:${new_emote.id}> added to the "${emote_servers[current_server].name}" guild`)
         // console.log(`${process.env.LOG_PREFIX} INFO: Emote ${emote.name} added to server ${state[twitch_user.id].current_emoji_server+1}`)
