@@ -202,27 +202,27 @@ let create_emote = async (emote, emote_servers, twitch_user, interaction, emote_
         let created_emoji = await emote_servers[current_server].emojis.create({ attachment: emote_url, name: emote.name.replaceAll('-','') })
         let new_emote = new TwitchEmote({ name: emote.name, id: created_emoji.id, animated: created_emoji.animated, channel: { id: twitch_user.id, name: twitch_user.display_name} })
         await new_emote.save()
-        await interaction.channel.send(`Emote <${(new_emote.animated) ? 'a' : ''}:${new_emote.name}:${new_emote.id}> added to the "${emote_servers[current_server].name}" guild`)
+        await interaction.channel.send(`Emote '${emote.name}' <${(new_emote.animated) ? 'a' : ''}:${new_emote.name}:${new_emote.id}> added to the "${emote_servers[current_server].name}" guild`)
         // console.log(`${process.env.LOG_PREFIX} INFO: Emote ${emote.name} added to server ${state[twitch_user.id].current_emoji_server+1}`)
     } catch (error) {
         if (error.message.includes('Maximum number of emojis reached')) { // maximum limit reached for normal servers, add it to the next server
             state[twitch_user.id].current_emoji_server += 1
-            await interaction.channel.send(`Max number of emotes, attempting to add emote ${emote.name} to server ${state[twitch_user.id].current_emoji_server + 1}`)
+            await interaction.channel.send(`Max number of emotes, attempting to add emote ${emote.name} to the "${emote_servers[state[twitch_user.id].current_emoji_server].name}" guild`)
             // console.log(`${process.env.LOG_PREFIX} INFO: Max number of emotes, attempting to add emote ${emote.name} to server ${state[twitch_user.id].current_emoji_server+1}+1`)
             await create_emote(emote, emote_servers, twitch_user, interaction, emote_size, state[twitch_user.id].current_emoji_server)
         } else if (error.message.includes('Maximum number of animated emojis reached')) { // maximum limit reached for animated servers, add it to the next server
             state[twitch_user.id].current_animated_server += 1
-            await interaction.channel.send(`Max number of animated emotes, attempting to add emote ${emote.name} to server ${state[twitch_user.id].current_animated_server + 1}`)
+            await interaction.channel.send(`Max number of animated emotes, attempting to add emote ${emote.name} to the "${emote_servers[state[twitch_user.id].current_animated_server].name}" guild`)
             // console.log(`${process.env.LOG_PREFIX} INFO: Max number of animated emotes, attempting to add emote ${emote.name} to server ${state[twitch_user.id].current_emoji_server+1}`)
             await create_emote(emote, emote_servers, twitch_user, interaction, emote_size, state[twitch_user.id].current_animated_server)
         } else if (error.message.includes('Failed to resize asset below the maximum size')) { // try to add a smaller emoji size
             try {
                 if (emote_size == 1) {
                     reset_state(twitch_user.id)
-                    return await interaction.channel.send(`Emote ${emote.name} could not be added to server ${current_server + 1}, size is too big`)
+                    return await interaction.channel.send(`Emote ${emote.name} could not be added to the "${emote_servers[current_server].name}" guild, size is too big`)
                     // return console.log(`${process.env.LOG_PREFIX} ERROR: Emote ${emote.name} could not be added to server ${state[twitch_user.id].current_emoji_server+1}, size is too big`)
                 }
-                await interaction.channel.send(`Size is too big, attempting to downscale and add emote ${emote.name} to server ${current_server + 1}`)
+                await interaction.channel.send(`Size is too big, attempting to downscale and add emote ${emote.name} to the "${emote_servers[current_server].name}" guild`)
                 // console.log(`${process.env.LOG_PREFIX} INFO: Size is too big, attempting to downscale and add emote ${emote.name} to server ${state[twitch_user.id].current_emoji_server+1}`)
                 await create_emote(emote, emote_servers, twitch_user, interaction, 1, current_server)
             }
