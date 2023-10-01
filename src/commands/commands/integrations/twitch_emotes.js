@@ -10,6 +10,10 @@ const qs = require('querystring')
 // twitch_id: { current_emoji_server, current_animated_server }
 let state = {};
 
+let emote_sets = {
+    "halloween": "6338e79d63c921dabe53ad84"
+};
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('twitch_emotes')
@@ -32,24 +36,45 @@ module.exports = {
                 ))
         .addSubcommand(subcommand =>
             subcommand
-                .setName('sync')
+                .setName('sync_emotes')
                 .setDescription('Sync a registered channels emotes to its Discord servers')
                 .addStringOption(option =>
                     option.setName('username')
                         .setDescription('Twitch username for the channel')
                         .setRequired(true)
                         .setAutocomplete(true)
+                ))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('sync_set')
+                .setDescription('Sync a registered channels emotes to its Discord servers')
+                .addStringOption(option =>
+                    option.setName('username')
+                        .setDescription('Twitch username for the channel')
+                        .setRequired(true)
+                        .setAutocomplete(true)
+                )
+                .addStringOption(option =>
+                    option.setName('set')
+                        .setDescription('7TV set id or set alias')
+                        .setRequired(true)
+                        .setAutocomplete(true)
                 )),
     async autocomplete(interaction) {
-        const focused_value = interaction.options.getFocused()
+        const focused = interaction.options.getFocused(true)
         const subcommand = interaction.options.getSubcommand()
-        let choices = await TwitchChannel.find({}), filtered_choices = []
-
-        if (subcommand === 'sync') {
-            filtered_choices = choices.filter(choice => choice.name.includes(focused_value))
+        let choices, filtered_choices = []
+        if (subcommand === 'sync_emotes' || subcommand === 'sync_set') {
+            if (focused.name === 'username') {
+                choices = await TwitchChannel.find({})
+                filtered_choices = choices.filter(choice => choice.name.startsWith(focused.value)).map(choice => ({ name: choice.name, value: choice.name }))
+            } else if (focused.name === 'set') {
+                choices = Object.keys(emote_sets)
+                filtered_choices = choices.filter(choice => choice.includes(focused.value)).map(choice => ({ name: choice, value: choice }))
+            }
         }
         await interaction.respond(
-            filtered_choices.map(choice => ({ name: choice.name, value: choice.name })).slice(0, 25)
+            filtered_choices.slice(0, 25)
         );
     },
     async execute(interaction) {
@@ -75,7 +100,8 @@ module.exports = {
 
         let registration = await TwitchChannel.findOne({ id: twitch_user.id })
         if (!state.hasOwnProperty(twitch_user.id)) state[twitch_user.id] = { current_emoji_server: 0, current_animated_server: 0 }
-        if (interaction.options.getSubcommand() === 'register') {
+        let subcommand = interaction.options.getSubcommand();
+        if (subcommand === 'register') {
             let registration_embed = embed({
                 color: process.env.COLOR_PRIMARY,
                 authorName: `Twitch Emote Integration`,
@@ -106,24 +132,8 @@ module.exports = {
             registration_embed.addFields({ name: "Profile", value: twitch_user.display_name }, { name: "Emote Servers", value: emote_servers.map(guild => guild.name).join("\n") })
             registration_embed.setDescription(`Profile Updated`)
             return interaction.reply({ embeds: [registration_embed] })
-        }
-        else if (interaction.options.getSubcommand() === 'sync') {
+        } else if (subcommand.includes('sync')) {
             if (!registration) return interaction.reply({ embeds: [embed({ description: `No registration found for ${user_option}'s channel`, error: true })], ephemeral: true })
-
-            let links = {
-                bttv: `https://api.betterttv.net/3/cached/users/twitch/${twitch_user.id}`,
-                ffz: `https://api.betterttv.net/3/cached/frankerfacez/users/twitch/${twitch_user.id}`,
-                stv: `https://api.7tv.app/v2/users/${twitch_user.id}/emotes`
-            }
-
-            // list of all fetched emotes
-            let emotes = []
-            for (let website in links) {
-                let status_fetch = await fetch(links[website])
-                let status_data = await status_fetch.json()
-                let fetched_emotes = (website === 'bttv') ? [...status_data.channelEmotes, ...status_data.sharedEmotes] : status_data
-                for (let emote of fetched_emotes) emotes.push({ name: `${(emote.code) ? emote.code : emote.name}`, id: emote.id, website, animated: website === 'stv' ? false : emote.animated })
-            }
 
             // get list of emote servers
             let emote_servers
@@ -134,16 +144,32 @@ module.exports = {
             }
 
             // get a list of all emote names and ids from all emote servers
-            const all_emotes = await TwitchEmote.find({"channel.id": registration.id})
+            const all_emotes = await TwitchEmote.find({ "channel.id": registration.id })
             all_emote_names = all_emotes.map(emote => emote.name)
-            
+
             emote_servers = emote_servers.reverse()
+
+            let links, set_id;
+            if (subcommand === 'sync_emotes') {
+                links = {
+                    bttv: `https://api.betterttv.net/3/cached/users/twitch/${twitch_user.id}`,
+                    ffz: `https://api.betterttv.net/3/cached/frankerfacez/users/twitch/${twitch_user.id}`,
+                    stv: `https://api.7tv.app/v2/users/${twitch_user.id}/emotes`
+                }
+            } else if (subcommand === 'sync_set') {
+                let param_set_id = interaction.options.getString('set') 
+                set_id = emote_sets[param_set_id] || param_set_id
+                links = { stv_set: `https://7tv.io/v3/emote-sets/${set_id}` }
+            }
+
+            // list of all fetched emotes
+            let emotes = await fetch_emotes(links)
             interaction.reply({ content: "Updating emotes..." })
-            // console.log(emotes, emote_servers, twitch_user.id)
 
             // if not added already, add the emote to a free server
             for (let emote_to_add of emotes) {
-                if (all_emote_names.includes(emote_to_add.name)) continue
+                if (all_emote_names.includes(emote_to_add.name) && !set_id) continue
+                console.log(emote_to_add.name)
                 await create_emote(emote_to_add, emote_servers, twitch_user, interaction)
             }
             return interaction.channel.send({ content: "Done updating emotes" })
@@ -151,12 +177,29 @@ module.exports = {
     },
 };
 
+let fetch_emotes = async (links) => {
+    let emotes = []
+    for (let web_type in links) {
+        let url = links[web_type]
+        let status_fetch = await fetch(url)
+        let status_data = await status_fetch.json()
+        let fetched_emotes = (web_type === 'bttv') ? [...status_data.channelEmotes, ...status_data.sharedEmotes] : (web_type === 'stv_set') ? status_data.emotes : status_data
+        for (let emote of fetched_emotes) emotes.push({
+            name: `${(emote.code) ? emote.code : emote.name}`,
+            id: emote.id,
+            type: web_type,
+            animated: web_type === 'stv' ? false : web_type === 'stv_set' ? emote.data.animated : emote.animated,
+            set: web_type === 'stv_set' ? url.substring(url.lastIndexOf('/') + 1) : 'default'
+        })
+    }
+    return emotes
+}
 
 // return cdn url for emote 
-let get_emote_url = async (website, id, size) => {
-    let link = `https://cdn.${(website === 'bttv') ? 'betterttv' : (website === 'ffz') ? 'frankerfacez' : '7tv'}.${(website === 'bttv') ? 'net' : (website === 'ffz') ? 'com' : 'app'}/emote/${id}/${size}${(website != 'ffz') ? 'x' : ''}`
+let get_emote_url = async (type, id, size) => {
+    let link = `https://cdn.${(type === 'bttv') ? 'betterttv' : (type === 'ffz') ? 'frankerfacez' : '7tv'}.${(type === 'bttv') ? 'net' : (type === 'ffz') ? 'com' : 'app'}/emote/${id}/${size}${(type != 'ffz') ? 'x' : ''}`
     // 7tv uses webp, return as gif
-    if (website === "stv") {
+    if (type.includes('stv')) {
         let emote_res = await fetch(link + ".gif")
         if (emote_res.status == 200) link += ".gif"
         else link += ".png"
@@ -185,7 +228,7 @@ let reset_state = (id) => {
 
 // add given emote to a server from the server list or a specific server from the emote list
 let create_emote = async (emote, emote_servers, twitch_user, interaction, emote_size = 2, current_server = -1) => {
-    let emote_url = await get_emote_url(emote.website, emote.id, emote_size)
+    let emote_url = await get_emote_url(emote.type, emote.id, emote_size)
     if (!emote.animated && emote_url.includes('.gif')) emote.animated = true
     // current server is the minimum of either the current normal emoji server or the animated server unless a specific server was provided
     current_server = (current_server == -1) ? (emote.animated) ? state[twitch_user.id].current_animated_server : state[twitch_user.id].current_emoji_server : current_server
@@ -194,13 +237,18 @@ let create_emote = async (emote, emote_servers, twitch_user, interaction, emote_
         return await interaction.channel.send(`Emote "${emote.name}" could not be added, either it is too big or no space is left on the emote servers`)
         // return console.log(`${process.env.LOG_PREFIX} ERROR: ${emote.name} could not be added, either it is too big or no space left on the emote servers`)
     }
-    // rate limit timer
-    await new Promise(r => setTimeout(r, Math.floor(Math.random() * 15000) + 10000));
     try {
         // add medium sized emote to the current server
-        // console.log(current_server, get_emote_url(emote.website, emote.id, emote_size), emote.name)
-        let created_emoji = await emote_servers[current_server].emojis.create({ attachment: emote_url, name: emote.name.replaceAll('-','') })
-        let new_emote = new TwitchEmote({ name: emote.name, id: created_emoji.id, animated: created_emoji.animated, channel: { id: twitch_user.id, name: twitch_user.display_name} })
+        // when updating for sets, if a duplicate is found in default set is found, set it to not active
+        if (emote.set !== 'default') {
+            let emote_doc = await TwitchEmote.findOne({ 'channel.id': twitch_user.id, 'data.id': emote.id })
+            if (emote_doc) return 
+            await TwitchEmote.findOneAndUpdate({ 'channel.id': twitch_user.id, 'name': emote.name, 'data.set': 'default' }, { $set: { 'data.active': false } })
+        }
+        // rate limit timer
+        await new Promise(r => setTimeout(r, Math.floor(Math.random() * 15000) + 10000));        
+        let created_emoji = await emote_servers[current_server].emojis.create({ attachment: emote_url, name: emote.name.replaceAll('-', '') })
+        let new_emote = new TwitchEmote({ name: emote.name, id: created_emoji.id, animated: created_emoji.animated, channel: { id: twitch_user.id, name: twitch_user.display_name }, data: { active: true, set: emote.set, id: emote.id, type: emote.type } })
         await new_emote.save()
         await interaction.channel.send(`Emote '${emote.name}' <${(new_emote.animated) ? 'a' : ''}:${new_emote.name}:${new_emote.id}> added to the "${emote_servers[current_server].name}" guild`)
         // console.log(`${process.env.LOG_PREFIX} INFO: Emote ${emote.name} added to server ${state[twitch_user.id].current_emoji_server+1}`)
@@ -232,6 +280,7 @@ let create_emote = async (emote, emote_servers, twitch_user, interaction, emote_
                 // console.log(`${process.env.LOG_PREFIX} ERROR: Emote ${emote.name} not added for an unhandled error`, ex)
             }
         } else {
+            console.log(error)
             await interaction.channel.send(`Failed to upload emote ${emote.name}`, error) // log error
             reset_state(twitch_user.id)
         }
