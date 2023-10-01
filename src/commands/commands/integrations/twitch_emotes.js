@@ -169,7 +169,7 @@ module.exports = {
             // if not added already, add the emote to a free server
             for (let emote_to_add of emotes) {
                 if (all_emote_names.includes(emote_to_add.name) && !set_id) continue
-                console.log(`Processing ${emote_to_add}`)
+                console.log(`Processing ${JSON.stringify(emote_to_add)}`)
                 await create_emote(emote_to_add, emote_servers, twitch_user, interaction)
             }
             return interaction.channel.send({ content: "Done updating emotes" })
