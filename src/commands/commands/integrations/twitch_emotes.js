@@ -5,7 +5,8 @@ const TwitchEmote = require('@models/twitch_emote')
 // config for users
 const TwitchChannel = require('@models/twitch_channel')
 const fetch = require('node-fetch');
-const qs = require('querystring')
+const qs = require('querystring');
+const { create } = require('domain');
 
 // twitch_id: { current_emoji_server, current_animated_server }
 let state = {};
@@ -144,7 +145,7 @@ module.exports = {
             }
 
             // get a list of all emote names and ids from all emote servers
-            const all_emotes = await TwitchEmote.find({ "channel.id": registration.id })
+            const all_emotes = await TwitchEmote.find({ "channel.id": registration.id, "data.active": true })
             all_emote_names = all_emotes.map(emote => emote.name)
 
             emote_servers = emote_servers.reverse()
@@ -154,7 +155,7 @@ module.exports = {
                 links = {
                     bttv: `https://api.betterttv.net/3/cached/users/twitch/${twitch_user.id}`,
                     ffz: `https://api.betterttv.net/3/cached/frankerfacez/users/twitch/${twitch_user.id}`,
-                    stv: `https://api.7tv.app/v2/users/${twitch_user.id}/emotes`
+                    stv: `https://7tv.io/v3/users/twitch/${twitch_user.id}`
                 }
             } else if (subcommand === 'sync_set') {
                 let param_set_id = interaction.options.getString('set') 
@@ -183,12 +184,14 @@ let fetch_emotes = async (links) => {
         let url = links[web_type]
         let status_fetch = await fetch(url)
         let status_data = await status_fetch.json()
-        let fetched_emotes = (web_type === 'bttv') ? [...status_data.channelEmotes, ...status_data.sharedEmotes] : (web_type === 'stv_set') ? status_data.emotes : status_data
+        if (web_type === 'stv') status_data = status_data["emote_set"]
+        let fetched_emotes = (web_type === 'bttv') ? [...status_data.channelEmotes, ...status_data.sharedEmotes] : (web_type.includes('stv')) ? status_data.emotes : status_data
+        console.log(status_data, web_type, url, fetched_emotes)
         for (let emote of fetched_emotes) emotes.push({
             name: `${(emote.code) ? emote.code : emote.name}`,
             id: emote.id,
             type: web_type,
-            animated: web_type === 'stv' ? false : web_type === 'stv_set' ? emote.data.animated : emote.animated,
+            animated: web_type === 'stv' ? false : web_type.includes('stv') ? emote.data.animated : emote.animated,
             set: web_type === 'stv_set' ? url.substring(url.lastIndexOf('/') + 1) : 'default'
         })
     }
@@ -240,14 +243,22 @@ let create_emote = async (emote, emote_servers, twitch_user, interaction, emote_
     try {
         // add medium sized emote to the current server
         // when updating for sets, if a duplicate is found in default set is found, set it to not active
+        let emote_doc = await TwitchEmote.findOne({ 'channel.id': twitch_user.id, 'data.id': emote.id })
         if (emote.set !== 'default') {
-            let emote_doc = await TwitchEmote.findOne({ 'channel.id': twitch_user.id, 'data.id': emote.id })
             if (emote_doc) return 
             await TwitchEmote.findOneAndUpdate({ 'channel.id': twitch_user.id, 'name': emote.name, 'data.set': 'default' }, { $set: { 'data.active': false } })
         }
+        let created_emoji
+        if (!emote_doc) {
+            await new Promise(r => setTimeout(r, Math.floor(Math.random() * 15000) + 10000));        
+            created_emoji = await emote_servers[current_server].emojis.create({ attachment: emote_url, name: emote.name.replaceAll('-', '') })    
+        } else {
+            created_emoji = {
+                id: emote_doc.id,
+                animated: emote_doc.animated
+            }
+        }
         // rate limit timer
-        await new Promise(r => setTimeout(r, Math.floor(Math.random() * 15000) + 10000));        
-        let created_emoji = await emote_servers[current_server].emojis.create({ attachment: emote_url, name: emote.name.replaceAll('-', '') })
         let new_emote = new TwitchEmote({ name: emote.name, id: created_emoji.id, animated: created_emoji.animated, channel: { id: twitch_user.id, name: twitch_user.display_name }, data: { active: true, set: emote.set, id: emote.id, type: emote.type } })
         await new_emote.save()
         await interaction.channel.send(`Emote '${emote.name}' <${(new_emote.animated) ? 'a' : ''}:${new_emote.name}:${new_emote.id}> added to the "${emote_servers[current_server].name}" guild`)
