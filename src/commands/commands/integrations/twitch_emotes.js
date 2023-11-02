@@ -60,12 +60,28 @@ module.exports = {
                         .setDescription('7TV set id or set alias')
                         .setRequired(true)
                         .setAutocomplete(true)
+                ))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('delete_set')
+                .setDescription('Delete emotes from a registered channels emotes to its Discord servers')
+                .addStringOption(option =>
+                    option.setName('username')
+                        .setDescription('Twitch username for the channel')
+                        .setRequired(true)
+                        .setAutocomplete(true)
+                )
+                .addStringOption(option =>
+                    option.setName('set')
+                        .setDescription('7TV set id or set alias')
+                        .setRequired(true)
+                        .setAutocomplete(true)
                 )),
     async autocomplete(interaction) {
         const focused = interaction.options.getFocused(true)
         const subcommand = interaction.options.getSubcommand()
         let choices, filtered_choices = []
-        if (subcommand === 'sync_emotes' || subcommand === 'sync_set') {
+        if (subcommand === 'sync_emotes' || subcommand === 'sync_set' || subcommand === 'delete_set') {
             if (focused.name === 'username') {
                 choices = await TwitchChannel.find({})
                 filtered_choices = choices.filter(choice => choice.name.startsWith(focused.value)).map(choice => ({ name: choice.name, value: choice.name }))
@@ -158,7 +174,7 @@ module.exports = {
                     stv: `https://7tv.io/v3/users/twitch/${twitch_user.id}`
                 }
             } else if (subcommand === 'sync_set') {
-                let param_set_id = interaction.options.getString('set') 
+                let param_set_id = interaction.options.getString('set')
                 set_id = emote_sets[param_set_id] || param_set_id
                 links = { stv_set: `https://7tv.io/v3/emote-sets/${set_id}` }
             }
@@ -174,6 +190,36 @@ module.exports = {
                 await create_emote(emote_to_add, emote_servers, twitch_user, interaction)
             }
             return interaction.channel.send({ content: "Done updating emotes" })
+        } else if (subcommand === 'delete_set') {
+            if (!registration) return interaction.reply({ embeds: [embed({ description: `No registration found for ${user_option}'s channel`, error: true })], ephemeral: true })
+            let emote_servers
+            try {
+                emote_servers = await get_all_emote_servers(registration.guilds, interaction.client)
+            } catch (ex) {
+                return interaction.reply({ embeds: [embed({ description: `Invite the bot to the emote servers and allow it to add emotes`, error: true })], ephemeral: true })
+            }
+            interaction.reply({ content: "Deleting emotes..." })
+            let param_set_id = interaction.options.getString('set')
+            set_id = emote_sets[param_set_id] || param_set_id
+            // get a list of all emote names and ids from all emote servers
+            const all_emotes = await TwitchEmote.find({ "channel.id": registration.id, "data.active": false, "data.set": set_id })
+            for (let delete_emote of all_emotes) {
+                deleted = false
+                console.log(`Processing ${JSON.stringify(delete_emote.name)}`)
+                for (let emote_server of emote_servers) {
+                    const emoji = emote_server.emojis.cache.get(delete_emote.id);
+                    if (!emoji) continue
+                    try {
+                        await rate_limit();
+                        await emoji.delete();
+                        await interaction.channel.send(`Emote "${delete_emote.name}" deleted from guild "${emote_server.name}".`)
+                        deleted = true
+                    } catch (error) {
+                        console.error(`Error deleting emoji in guild ${emote_server.name}:`, error);
+                    }
+                }
+                if (!deleted) await interaction.channel.send(`Failed to delete "${delete_emote.name}" emote.`)
+            }
         }
     },
 };
@@ -245,20 +291,20 @@ let create_emote = async (emote, emote_servers, twitch_user, interaction, emote_
         // when updating for sets, if a duplicate is found in default set is found, set it to not active
         let emote_doc = await TwitchEmote.findOne({ 'channel.id': twitch_user.id, 'data.id': emote.id })
         if (emote.set !== 'default') {
-            if (emote_doc) return 
+            if (emote_doc) return
             await TwitchEmote.findOneAndUpdate({ 'channel.id': twitch_user.id, 'name': emote.name, 'data.set': 'default' }, { $set: { 'data.active': false } })
         }
         let created_emoji
         if (!emote_doc) {
-            await new Promise(r => setTimeout(r, Math.floor(Math.random() * 15000) + 10000));        
-            created_emoji = await emote_servers[current_server].emojis.create({ attachment: emote_url, name: emote.name.replaceAll('-', '') })    
+            // rate limit timer
+            await rate_limit()
+            created_emoji = await emote_servers[current_server].emojis.create({ attachment: emote_url, name: emote.name.replaceAll('-', '') })
         } else {
             created_emoji = {
                 id: emote_doc.id,
                 animated: emote_doc.animated
             }
         }
-        // rate limit timer
         let new_emote = new TwitchEmote({ name: emote.name, id: created_emoji.id, animated: created_emoji.animated, channel: { id: twitch_user.id, name: twitch_user.display_name }, data: { active: true, set: emote.set, id: emote.id, type: emote.type } })
         await new_emote.save()
         await interaction.channel.send(`Emote '${emote.name}' <${(new_emote.animated) ? 'a' : ''}:${new_emote.name}:${new_emote.id}> added to the "${emote_servers[current_server].name}" guild`)
@@ -296,4 +342,8 @@ let create_emote = async (emote, emote_servers, twitch_user, interaction, emote_
             reset_state(twitch_user.id)
         }
     }
+}
+
+const rate_limit = async () => {
+    await new Promise(r => setTimeout(r, Math.floor(Math.random() * 15000) + 10000));
 }
