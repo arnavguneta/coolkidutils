@@ -220,6 +220,7 @@ module.exports = {
                 }
                 if (!deleted) await interaction.channel.send(`Failed to delete "${delete_emote.name}" emote.`)
             }
+            await interaction.channel.send(`Done deleting emotes.`)
         }
     },
 };
