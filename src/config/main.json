@@ -1,5 +1,13 @@
 {
   "settings": {
-    "deployCommands": true
+    "deployCommands": false
+  },
+  "theme": {
+    "colors": {
+      "success":"#48A14D",
+      "primary":"#0099FF",
+      "info":"#E4F567",
+      "fail":"#E53935"
+    }
   }
 }

@@ -48,6 +48,9 @@ module.exports = {
         },
         getDeployCommands() {
             return configs[main].settings.deployCommands
+        },
+        getThemeColor(color) {
+            return configs[main].theme.colors[color]
         }
     },
     cooldownsConfig: {
