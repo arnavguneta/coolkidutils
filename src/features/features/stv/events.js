@@ -49,6 +49,7 @@ const handleDispatch = async (event, client, config) => {
     const debugChannel = client.channels.cache.get(DEBUG_CHANNEL);
     const updateChannel = client.channels.cache.get(currentConfig.update_channel);
     if (updateChannel) {
+        let notifyChannel = updateChannel
         if (event.body.hasOwnProperty('pushed')) {
             let emote = {
                 name: body.name,
@@ -60,7 +61,8 @@ const handleDispatch = async (event, client, config) => {
             const ownerRes = await fetch(`https://7tv.io/v3/users/${setJson.owner.id}`)
             const ownerJson = await ownerRes.json()
             console.log(`Processing emote ${JSON.stringify(emote)}`)
-            await create_emote(emote, undefined, ownerJson.connections[0], debugChannel)
+            let status = await create_emote(emote, undefined, ownerJson.connections[0], debugChannel)
+            if (!status) notifyChannel = debugChannel
         }
         updateChannel.send({ embeds: [embed] })
     }

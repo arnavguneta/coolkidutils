@@ -10,6 +10,9 @@ const qs = require('querystring');
 // twitch_id: { current_emoji_server, current_animated_server }
 let state = {};
 
+// allow auto udpates for emotes
+let allowAutoUpdates = true;
+
 let emote_sets = {
     "halloween": "6338e79d63c921dabe53ad84"
 };
@@ -66,6 +69,7 @@ let reset_state = (id) => {
 
 // add given emote to a server from the server list or a specific server from the emote list
 let create_emote = async (emote, emote_servers = [], twitch_user, channel, emote_size = 2, current_server = -1) => {
+    if (emote_servers.length === 0 && !allowAutoUpdates) return false
     if (emote_servers.length === 0) {
         let registration = await TwitchChannel.findOne({ id: twitch_user.id })
         if (!registration) return channel.send({ embeds: [embed({ description: `No registration found for ${user_option}'s channel`, error: true })], ephemeral: true })
@@ -230,6 +234,15 @@ module.exports = {
                     option.setName('emoji')
                         .setDescription('Emoji or Emoji ID')
                         .setRequired(true)
+                ))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('auto_update')
+                .setDescription('Toggle auto adding of emotes from 7TV')
+                .addBooleanOption(option =>
+                    option.setName('toggle')
+                        .setDescription('Toggle auto update for emote additions')
+                        .setRequired(true)
                 )),
     async autocomplete(interaction) {
         const focused = interaction.options.getFocused(true)
@@ -390,16 +403,21 @@ module.exports = {
             }
             if (emoji) {
                 try {
-                    await TwitchEmote.findOneAndDelete({id: emoji.id});
+                    await TwitchEmote.findOneAndDelete({ id: emoji.id });
                     await emoji.delete();
                     await interaction.channel.send(`Emoji "${emoji.name}" with ID "${emoji.id}" has been deleted from guild "${emoji.guild.name}".`)
                 } catch (error) {
                     console.error(`Error deleting emoji in guild "${emoji.guild.name}":`, error);
-                }               
+                }
             } else {
                 await interaction.channel.send(`No emoji found to delete.`)
             }
+        } else if (subcommand === 'auto_update') {
+            const updateToggle = options.getBoolean('toggle');
+            await interaction.reply(`Auto update has been toggled from ${allowAutoUpdates} to ${updateToggle}.`)
+            allowAutoUpdates = updateToggle
         }
+
     },
     create_emote
 };
