@@ -103,8 +103,8 @@ let create_emote = async (emote, emote_servers = [], twitch_user, channel, emote
             // when updating for sets, if a duplicate is found in default set is found, set it to not active
             let emote_doc = await TwitchEmote.findOne({ 'channel.id': twitch_user.id, 'data.id': emote.id })
             if (emote.set !== 'default') {
-                if (!emote_doc) return
-                await TwitchEmote.findOneAndUpdate({ 'channel.id': twitch_user.id, 'name': emote.name, 'data.set': 'default' }, { $set: { 'data.active': false } })
+                if (emote_doc) return // if new set emote already exists, skip
+                await TwitchEmote.updateMany({ 'data.id': emote.id, 'data.active': true }, { $set: { 'data.active': false } })
             }
             let created_emoji
             if (!emote_doc) {
@@ -117,7 +117,7 @@ let create_emote = async (emote, emote_servers = [], twitch_user, channel, emote
                     animated: emote_doc.animated
                 }
             }
-
+            if (emote_doc && emote_doc.data.set === emote.set && emote_doc.data.active) return
             let new_emote = new TwitchEmote({ name: emote.name, id: created_emoji.id, animated: created_emoji.animated, channel: { id: twitch_user.id, name: twitch_user.display_name }, data: { active: true, set: emote.set, id: emote.id, type: emote.type } })
             await new_emote.save()
             await channel.send(`Emote '${emote.name}' <${(new_emote.animated) ? 'a' : ''}:${new_emote.name}:${new_emote.id}> added to the "${emote_servers[current_server].name}" guild`)
