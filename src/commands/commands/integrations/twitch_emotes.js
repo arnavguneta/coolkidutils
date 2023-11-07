@@ -374,12 +374,14 @@ module.exports = {
             }
             await interaction.channel.send(`Done deleting emotes.`)
         } else if (subcommand === 'delete_emote') {
-            const emojiInput = interaction.options.getString('emoji');
-            const emojiRegex = /<:\w+:\d+>/;
+            const emojiInput = interaction.options.getString('emoji').trim();
+            const emojiRegex = /<(a)?:\w+:(\d+)>/;
             const isSnowflakeID = /^\d+$/.test(emojiInput);
             const isEmoji = emojiRegex.test(emojiInput);
-            if (!isSnowflakeID && !isEmoji) await interaction.reply(`Failed to delete parse emote.`)
+            console.log(isEmoji)
+            if (!isSnowflakeID && !isEmoji) return await interaction.reply(`Failed to delete parse emote.`)
             let emoji;
+            await interaction.reply(`Deleting emote...`)
             if (isSnowflakeID) {
                 emoji = interaction.client.emojis.resolve(emojiInput);
             } else {
@@ -387,17 +389,15 @@ module.exports = {
                 emoji = interaction.client.emojis.resolve(emojiID);
             }
             if (emoji) {
-                const emoji = interaction.client.emojis.resolve(delete_emote.id);
-                if (!emoji) await interaction.channel.send(`Failed to delete "${delete_emote.name}" emote, not found.`)
                 try {
                     await TwitchEmote.findOneAndDelete({id: emoji.id});
                     await emoji.delete();
-                    await interaction.reply(`Emoji "${emoji.name}" with ID "${emoji.id}" has been deleted from guild "${emoji.guild.name}".`)
+                    await interaction.channel.send(`Emoji "${emoji.name}" with ID "${emoji.id}" has been deleted from guild "${emoji.guild.name}".`)
                 } catch (error) {
                     console.error(`Error deleting emoji in guild "${emoji.guild.name}":`, error);
                 }               
             } else {
-                await interaction.reply(`No emoji found to delete.`)
+                await interaction.channel.send(`No emoji found to delete.`)
             }
         }
     },
