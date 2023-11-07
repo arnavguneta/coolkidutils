@@ -20,7 +20,8 @@ const handleDispatch = async (event, client, config) => {
     event = JSON.parse(event)
     if (event.type !== EMOTE_SET_UPDATE) return
     const setRes = await fetch(`https://7tv.io/v3/emote-sets/${event.body.id}`)
-    const setJson = setRes.json()
+    const setJson = await setRes.json()
+    console.log(setJson)
     const username = setJson.owner.username
     const currentConfig = CONFIGS.find(config => config.name === username)
     const embed = new EmbedBuilder()
@@ -57,8 +58,10 @@ const handleDispatch = async (event, client, config) => {
                 type: event.body.id === currentConfig.set ? 'stv' : 'stv_set',
                 set: event.body.id === currentConfig.set ? 'default' : event.body.id,
             }
+            const ownerRes = await fetch(`https://7tv.io/v3/users/${setJson.owner.id}`)
+            const ownerJson = await ownerRes.json()
             console.log(`Processing emote ${JSON.stringify(emote)}`)
-            await create_emote(emote, undefined, event.body.actor.connections[0], debugChannel)
+            await create_emote(emote, undefined, ownerJson.connections[0], debugChannel)
         }
         updateChannel.send({ embeds: [embed] })
     }
