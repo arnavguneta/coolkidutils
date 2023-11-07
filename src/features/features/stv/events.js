@@ -19,10 +19,12 @@ module.exports = async (client) => {
 const handleDispatch = async (event, client, config) => {
     event = JSON.parse(event)
     if (event.type !== EMOTE_SET_UPDATE) return
-    const username = event.body.actor.connections[0].display_name
+    const setRes = await fetch(`https://7tv.io/v3/emote-sets/${event.body.id}`)
+    const setJson = setRes.json()
+    const username = setJson.owner.username
     const currentConfig = CONFIGS.find(config => config.name === username)
     const embed = new EmbedBuilder()
-        .setAuthor({ name: `${username}'s emotes`, iconURL: `https:${event.body.actor.avatar_url}`, url: `https://twitch.tv/${username}` })
+        .setAuthor({ name: `${username}'s emotes`, iconURL: `https:${setJson.owner.avatar_url}`, url: `https://twitch.tv/${username}` })
         .setFooter({ text: '7TV Emote Updates', iconURL: 'https://i.imgur.com/l5O6kYn.png' })
         .setTimestamp();
     let body = {};
