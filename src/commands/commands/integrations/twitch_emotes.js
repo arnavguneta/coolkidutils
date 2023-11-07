@@ -65,7 +65,7 @@ let reset_state = (id) => {
 }
 
 // add given emote to a server from the server list or a specific server from the emote list
-let create_emote = async (emote, emote_servers=[], twitch_user, channel, emote_size = 2, current_server = -1) => {
+let create_emote = async (emote, emote_servers = [], twitch_user, channel, emote_size = 2, current_server = -1) => {
     if (emote_servers.length === 0) {
         let registration = await TwitchChannel.findOne({ id: twitch_user.id })
         if (!registration) return channel.send({ embeds: [embed({ description: `No registration found for ${user_option}'s channel`, error: true })], ephemeral: true })
@@ -97,9 +97,9 @@ let create_emote = async (emote, emote_servers=[], twitch_user, channel, emote_s
         } else {
             // add medium sized emote to the current server
             // when updating for sets, if a duplicate is found in default set is found, set it to not active
-            let emote_doc = await TwitchEmote.findOne({ 'channel.id': twitch_user.id, 'data.id': emote.id, 'data.set': emote.set })
+            let emote_doc = await TwitchEmote.findOne({ 'channel.id': twitch_user.id, 'data.id': emote.id })
             if (emote.set !== 'default') {
-                if (emote_doc) return
+                if (!emote_doc) return
                 await TwitchEmote.findOneAndUpdate({ 'channel.id': twitch_user.id, 'name': emote.name, 'data.set': 'default' }, { $set: { 'data.active': false } })
             }
             let created_emoji
@@ -221,6 +221,15 @@ module.exports = {
                         .setDescription('7TV set id or set alias')
                         .setRequired(true)
                         .setAutocomplete(true)
+                ))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('delete_emote')
+                .setDescription('Delete emote from a registered channels emotes to its Discord servers')
+                .addStringOption(option =>
+                    option.setName('emoji')
+                        .setDescription('Emoji or Emoji ID')
+                        .setRequired(true)
                 )),
     async autocomplete(interaction) {
         const focused = interaction.options.getFocused(true)
@@ -349,23 +358,47 @@ module.exports = {
             // get a list of all emote names and ids from all emote servers
             const all_emotes = await TwitchEmote.find({ "channel.id": registration.id, "data.active": false, "data.set": set_id })
             for (let delete_emote of all_emotes) {
-                deleted = false
                 console.log(`Processing ${JSON.stringify(delete_emote.name)}`)
-                for (let emote_server of emote_servers) {
-                    const emoji = emote_server.emojis.cache.get(delete_emote.id);
-                    if (!emoji) continue
-                    try {
-                        await rate_limit();
-                        await emoji.delete();
-                        await interaction.channel.send(`Emote "${delete_emote.name}" deleted from guild "${emote_server.name}".`)
-                        deleted = true
-                    } catch (error) {
-                        console.error(`Error deleting emoji in guild ${emote_server.name}:`, error);
-                    }
+                const emoji = interaction.client.emojis.resolve(delete_emote.id);
+                if (!emoji) {
+                    await interaction.channel.send(`Failed to delete "${delete_emote.name}" emote, not found.`)
+                    continue
                 }
-                if (!deleted) await interaction.channel.send(`Failed to delete "${delete_emote.name}" emote.`)
+                try {
+                    await rate_limit();
+                    await emoji.delete();
+                    await interaction.channel.send(`Emote "${delete_emote.name}" deleted from guild "${emoji.guild.name}".`)
+                } catch (error) {
+                    console.error(`Error deleting emoji in guild "${emoji.guild.name}":`, error);
+                }
             }
             await interaction.channel.send(`Done deleting emotes.`)
+        } else if (subcommand === 'delete_emote') {
+            const emojiInput = interaction.options.getString('emoji');
+            const emojiRegex = /<:\w+:\d+>/;
+            const isSnowflakeID = /^\d+$/.test(emojiInput);
+            const isEmoji = emojiRegex.test(emojiInput);
+            if (!isSnowflakeID && !isEmoji) await interaction.reply(`Failed to delete parse emote.`)
+            let emoji;
+            if (isSnowflakeID) {
+                emoji = interaction.client.emojis.resolve(emojiInput);
+            } else {
+                const emojiID = emojiInput.match(/\d+/)[0];
+                emoji = interaction.client.emojis.resolve(emojiID);
+            }
+            if (emoji) {
+                const emoji = interaction.client.emojis.resolve(delete_emote.id);
+                if (!emoji) await interaction.channel.send(`Failed to delete "${delete_emote.name}" emote, not found.`)
+                try {
+                    await TwitchEmote.findOneAndDelete({id: emoji.id});
+                    await emoji.delete();
+                    await interaction.reply(`Emoji "${emoji.name}" with ID "${emoji.id}" has been deleted from guild "${emoji.guild.name}".`)
+                } catch (error) {
+                    console.error(`Error deleting emoji in guild "${emoji.guild.name}":`, error);
+                }               
+            } else {
+                await interaction.reply(`No emoji found to delete.`)
+            }
         }
     },
     create_emote
