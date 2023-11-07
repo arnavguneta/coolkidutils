@@ -10,7 +10,6 @@ const DEBUG_CHANNEL = '990042551979499590'
 
 module.exports = async (client) => {
     let sets = CONFIGS.map(config => `emote_set.update<object_id=${config.set}>`).join(",")
-    console.log(sets)
     let source = new EventSource(`https://events.7tv.io/v3@${sets}`);
     source.addEventListener('hello', e => console.log(e.data), false);
     source.addEventListener('subscribe', e => console.log(e.data), false);

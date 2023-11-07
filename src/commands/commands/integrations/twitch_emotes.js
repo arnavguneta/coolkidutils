@@ -75,7 +75,6 @@ let create_emote = async (emote, emote_servers=[], twitch_user, channel, emote_s
             return channel.send({ embeds: [embed({ description: `Invite the bot to the emote servers and allow it to add emotes`, error: true })], ephemeral: true })
         }
     }
-    console.log(emote_servers.length, twitch_user)
     let emote_url = await get_emote_url(emote.type, emote.id, emote_size)
     if (!emote.animated && emote_url.includes('.gif')) emote.animated = true
     if (!state.hasOwnProperty(twitch_user.id)) reset_state(twitch_user.id)
@@ -89,7 +88,6 @@ let create_emote = async (emote, emote_servers=[], twitch_user, channel, emote_s
     try {
         let animated_emoji_cache = emote_servers[current_server].emojis.cache.filter(emoji => emoji.animated)
         let cur_emoji_size = emote.animated ? animated_emoji_cache.size : emote_servers[current_server].emojis.cache.size - animated_emoji_cache.size
-        console.log(cur_emoji_size, emote, emote_servers[current_server].emojis.cache.size)
         if (cur_emoji_size >= 50) {
             let cur_type = emote.animated ? 'current_animated_server' : 'current_emoji_server'
             state[twitch_user.id][cur_type] += 1
