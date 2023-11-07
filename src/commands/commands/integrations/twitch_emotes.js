@@ -413,7 +413,7 @@ module.exports = {
                 await interaction.channel.send(`No emoji found to delete.`)
             }
         } else if (subcommand === 'auto_update') {
-            const updateToggle = options.getBoolean('toggle');
+            const updateToggle = interaction.options.getBoolean('toggle');
             await interaction.reply(`Auto update has been toggled from ${allowAutoUpdates} to ${updateToggle}.`)
             allowAutoUpdates = updateToggle
         }
