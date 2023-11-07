@@ -21,7 +21,6 @@ const handleDispatch = async (event, client, config) => {
     if (event.type !== EMOTE_SET_UPDATE) return
     const setRes = await fetch(`https://7tv.io/v3/emote-sets/${event.body.id}`)
     const setJson = await setRes.json()
-    console.log(setJson)
     const username = setJson.owner.username
     const currentConfig = CONFIGS.find(config => config.name === username)
     const embed = new EmbedBuilder()
