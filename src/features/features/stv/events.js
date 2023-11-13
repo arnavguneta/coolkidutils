@@ -64,7 +64,7 @@ const handleDispatch = async (event, client, config) => {
             let status = await create_emote(emote, undefined, ownerJson.connections[0], debugChannel)
             if (!status) notifyChannel = debugChannel
         } else {
-            sleep(30000)
+            await sleep(30000)
         }
         updateChannel.send({ embeds: [embed] })
     }
