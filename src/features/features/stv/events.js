@@ -3,7 +3,7 @@ const fetch = require('node-fetch')
 const { EmbedBuilder } = require('discord.js');
 const { mainConfig } = require('@common/config')
 const { create_emote } = require('@commands/integrations/twitch_emotes')
-
+const { sleep } = require('@common/helpers')
 const EMOTE_SET_UPDATE = 'emote_set.update'
 const CONFIGS = [{ name: 'erobb221', set: '61f463a74f8c353cf9fbac98', update_channel: '1171319663251181578' }, { name: 'coolkidarnie', set: '64e147f2e4d325845e86a5e7', update_channel: '990042551979499590' }]
 const DEBUG_CHANNEL = '990042551979499590'
@@ -63,6 +63,8 @@ const handleDispatch = async (event, client, config) => {
             console.log(`Processing emote ${JSON.stringify(emote)}`)
             let status = await create_emote(emote, undefined, ownerJson.connections[0], debugChannel)
             if (!status) notifyChannel = debugChannel
+        } else {
+            sleep(30000)
         }
         updateChannel.send({ embeds: [embed] })
     }
