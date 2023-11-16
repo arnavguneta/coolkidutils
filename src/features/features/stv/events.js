@@ -2,8 +2,10 @@ const EventSource = require('eventsource')
 const fetch = require('node-fetch')
 const { EmbedBuilder } = require('discord.js');
 const { mainConfig } = require('@common/config')
-const { create_emote } = require('@commands/integrations/twitch_emotes')
+const { create_emote, delete_emote } = require('@commands/integrations/twitch_emotes')
 const { sleep } = require('@common/helpers')
+const TwitchEmote = require('@models/twitch_emote')
+
 const EMOTE_SET_UPDATE = 'emote_set.update'
 const CONFIGS = [{ name: 'erobb221', set: '61f463a74f8c353cf9fbac98', update_channel: '1171319663251181578' }, { name: 'coolkidarnie', set: '64e147f2e4d325845e86a5e7', update_channel: '990042551979499590' }]
 const DEBUG_CHANNEL = '990042551979499590'
@@ -64,6 +66,9 @@ const handleDispatch = async (event, client, config) => {
             let status = await create_emote(emote, undefined, ownerJson.connections[0], debugChannel)
             if (!status) notifyChannel = debugChannel
         } else {
+            let addedEmote = await TwitchEmote.findOne({ 'data.id': body.id });
+            if (!addedEmote) return
+            delete_emote(debugChannel, addedEmote.id)
             await sleep(30000)
         }
         updateChannel.send({ embeds: [embed] })

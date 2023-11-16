@@ -160,6 +160,31 @@ let create_emote = async (emote, emote_servers = [], twitch_user, channel, emote
     }
 }
 
+const delete_emote = async (channel, emoteInput) => {
+    const emojiRegex = /<(a)?:\w+:(\d+)>/;
+    const isSnowflakeID = /^\d+$/.test(emoteInput);
+    const isEmoji = emojiRegex.test(emoteInput);
+    if (!isSnowflakeID && !isEmoji) return `Failed to parse emote.`
+    let emoji;
+    if (isSnowflakeID) {
+        emoji = channel.client.emojis.resolve(emoteInput);
+    } else {
+        const emojiID = emoteInput.match(/\d+/)[0];
+        emoji = channel.client.emojis.resolve(emojiID);
+    }
+    if (emoji) {
+        try {
+            await TwitchEmote.findOneAndDelete({ id: emoji.id });
+            await emoji.delete();
+            await channel.send(`Emoji "${emoji.name}" with ID "${emoji.id}" has been deleted from guild "${emoji.guild.name}".`)
+        } catch (error) {
+            console.error(`Error deleting emoji in guild "${emoji.guild.name}":`, error);
+        }
+    } else {
+        await channel.send(`No emoji found to delete.`)
+    }
+}
+
 const rate_limit = async () => {
     await new Promise(r => setTimeout(r, Math.floor(Math.random() * 15000) + 10000));
 }
@@ -388,30 +413,30 @@ module.exports = {
             await interaction.channel.send(`Done deleting emotes.`)
         } else if (subcommand === 'delete_emote') {
             const emojiInput = interaction.options.getString('emoji').trim();
-            const emojiRegex = /<(a)?:\w+:(\d+)>/;
-            const isSnowflakeID = /^\d+$/.test(emojiInput);
-            const isEmoji = emojiRegex.test(emojiInput);
-            console.log(isEmoji)
-            if (!isSnowflakeID && !isEmoji) return await interaction.reply(`Failed to delete parse emote.`)
-            let emoji;
+            // const emojiRegex = /<(a)?:\w+:(\d+)>/;
+            // const isSnowflakeID = /^\d+$/.test(emojiInput);
+            // const isEmoji = emojiRegex.test(emojiInput);
+            // if (!isSnowflakeID && !isEmoji) return await interaction.reply(`Failed to delete parse emote.`)
+            // let emoji;
             await interaction.reply(`Deleting emote...`)
-            if (isSnowflakeID) {
-                emoji = interaction.client.emojis.resolve(emojiInput);
-            } else {
-                const emojiID = emojiInput.match(/\d+/)[0];
-                emoji = interaction.client.emojis.resolve(emojiID);
-            }
-            if (emoji) {
-                try {
-                    await TwitchEmote.findOneAndDelete({ id: emoji.id });
-                    await emoji.delete();
-                    await interaction.channel.send(`Emoji "${emoji.name}" with ID "${emoji.id}" has been deleted from guild "${emoji.guild.name}".`)
-                } catch (error) {
-                    console.error(`Error deleting emoji in guild "${emoji.guild.name}":`, error);
-                }
-            } else {
-                await interaction.channel.send(`No emoji found to delete.`)
-            }
+            // if (isSnowflakeID) {
+            //     emoji = interaction.client.emojis.resolve(emojiInput);
+            // } else {
+            //     const emojiID = emojiInput.match(/\d+/)[0];
+            //     emoji = interaction.client.emojis.resolve(emojiID);
+            // }
+            // if (emoji) {
+            //     try {
+            //         await TwitchEmote.findOneAndDelete({ id: emoji.id });
+            //         await emoji.delete();
+            //         await interaction.channel.send(`Emoji "${emoji.name}" with ID "${emoji.id}" has been deleted from guild "${emoji.guild.name}".`)
+            //     } catch (error) {
+            //         console.error(`Error deleting emoji in guild "${emoji.guild.name}":`, error);
+            //     }
+            // } else {
+            //     await interaction.channel.send(`No emoji found to delete.`)
+            // }
+            delete_emote(interaction.channel, emojiInput)
         } else if (subcommand === 'auto_update') {
             const updateToggle = interaction.options.getBoolean('toggle');
             await interaction.reply(`Auto update has been toggled from ${allowAutoUpdates} to ${updateToggle}.`)
@@ -419,5 +444,6 @@ module.exports = {
         }
 
     },
-    create_emote
+    create_emote,
+    delete_emote
 };
