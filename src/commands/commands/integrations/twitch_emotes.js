@@ -15,6 +15,8 @@ let emote_sets = {
     "halloween": "6338e79d63c921dabe53ad84"
 };
 
+let requiredRegistrationCommands = ['sync_emotes', 'sync_set', 'delete_set', 'toggle_emote_state']
+
 let fetch_emotes = async (links) => {
     let emotes = []
     for (let web_type in links) {
@@ -177,7 +179,7 @@ const delete_emote = async (channel, emoteInput, auto=false) => {
     let emoji = resolve_emote(channel.client, emoteInput)
     if (emoji) {
         try {
-            await TwitchEmote.findOneAndDelete({ id: emoji.id });
+            await TwitchEmote.deleteMany({ id: emoji.id });
             await emoji.delete();
             await channel.send(`Emoji "${emoji.name}" with ID "${emoji.id}" has been deleted from guild "${emoji.guild.name}".`)
         } catch (error) {
@@ -296,8 +298,7 @@ module.exports = {
         const focused = interaction.options.getFocused(true)
         const subcommand = interaction.options.getSubcommand()
         let choices, filtered_choices = []
-        let allowedCommands = ['sync_emotes', 'sync_set', 'delete_set', 'toggle_emote_state']
-        if (allowedCommands.includes(subcommand)) {
+        if (requiredRegistrationCommands.includes(subcommand)) {
             if (focused.name === 'username') {
                 choices = await TwitchChannel.find({})
                 filtered_choices = choices.filter(choice => choice.name.startsWith(focused.value)).map(choice => ({ name: choice.name, value: choice.name }))
@@ -334,6 +335,7 @@ module.exports = {
         let registration = await TwitchChannel.findOne({ id: twitch_user.id })
         if (!state.hasOwnProperty(twitch_user.id)) reset_state(twitch_user.id)
         let subcommand = interaction.options.getSubcommand();
+        if (requiredRegistrationCommands.includes(subcommand) && !registration) return interaction.reply({ embeds: [embed({ description: `No registration found for ${user_option}'s channel`, error: true })], ephemeral: true })
         if (subcommand === 'register') {
             let registration_embed = embed({
                 color: process.env.COLOR_PRIMARY,
@@ -366,8 +368,6 @@ module.exports = {
             registration_embed.setDescription(`Profile Updated`)
             return interaction.reply({ embeds: [registration_embed] })
         } else if (subcommand.includes('sync')) {
-            if (!registration) return interaction.reply({ embeds: [embed({ description: `No registration found for ${user_option}'s channel`, error: true })], ephemeral: true })
-
             // get list of emote servers
             let emote_servers
             try {
@@ -407,7 +407,6 @@ module.exports = {
             }
             return interaction.channel.send({ content: "Done updating emotes" })
         } else if (subcommand === 'delete_set') {
-            if (!registration) return interaction.reply({ embeds: [embed({ description: `No registration found for ${user_option}'s channel`, error: true })], ephemeral: true })
             interaction.reply({ content: "Deleting emotes..." })
             let param_set_id = interaction.options.getString('set')
             set_id = emote_sets[param_set_id] || param_set_id
@@ -428,7 +427,6 @@ module.exports = {
             await interaction.reply(`Auto update has been toggled from ${mainConfig.getEmotePreferences('autoUpdate')} to ${updateToggle}.`)
             mainConfig.setEmotePreferences('autoUpdate', updateToggle);
         } else if (subcommand === 'toggle_emote_state') {
-            if (!registration) return interaction.reply({ embeds: [embed({ description: `No registration found for ${user_option}'s channel`, error: true })], ephemeral: true })
             const emojiInput = interaction.options.getString('emoji').trim();
             const stateToggle = interaction.options.getBoolean('toggle');
             await interaction.reply(`Updating emote...`)
