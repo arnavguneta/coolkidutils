@@ -177,6 +177,7 @@ const resolve_emote = async (client, emoteInput) => {
 const delete_emote = async (channel, emoteInput, auto=false) => {
     if (auto && !mainConfig.getEmotePreferences('autoUpdate')) return 
     let emoji = resolve_emote(channel.client, emoteInput)
+    console.log(emoji)
     if (emoji) {
         try {
             await TwitchEmote.deleteMany({ id: emoji.id });
@@ -184,7 +185,7 @@ const delete_emote = async (channel, emoteInput, auto=false) => {
             await channel.send(`Emoji "${emoji.name}" with ID "${emoji.id}" has been deleted from guild "${emoji.guild.name}".`)
         } catch (error) {
             channel.send(`Error deleting emoji "${emoji.name}" with ID "${emoji.id}".`)
-            console.error(`Error deleting emoji in guild "${emoji.guild.name}":`, error);
+            console.error(`Error deleting emoji:`, error);
         }
     } else {
         await channel.send(`No emoji found to delete.`)
