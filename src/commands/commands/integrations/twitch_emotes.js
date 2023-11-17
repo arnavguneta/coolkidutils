@@ -177,7 +177,6 @@ const resolve_emote = async (client, emoteInput) => {
 const delete_emote = async (channel, emoteInput, auto=false) => {
     if (auto && !mainConfig.getEmotePreferences('autoUpdate')) return 
     let emoji = await resolve_emote(channel.client, emoteInput)
-    console.log(emoji)
     if (emoji) {
         try {
             await TwitchEmote.deleteMany({ id: emoji.id });
