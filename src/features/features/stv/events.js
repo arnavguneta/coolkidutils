@@ -72,7 +72,7 @@ const handleDispatch = async (event, client, config) => {
         } else {
             await sleep(5000)
             while (pendingEmotes[body.id]) {
-                debugChannel.send(`Sleeping for pending emote "${body.name}"`)
+                debugChannel.send(`Attempting emote deletion, pending emote creation... "${body.name}"`)
                 await sleep(30000)
             }
             let addedEmote = await TwitchEmote.findOne({ 'data.id': body.id });
