@@ -172,7 +172,8 @@ const resolve_emote = async (client, emoteInput) => {
     return emoji
 }
 
-const delete_emote = async (channel, emoteInput) => {
+const delete_emote = async (channel, emoteInput, auto=false) => {
+    if (auto && !mainConfig.getEmotePreferences('autoUpdate')) return 
     let emoji = resolve_emote(channel.client, emoteInput)
     if (emoji) {
         try {

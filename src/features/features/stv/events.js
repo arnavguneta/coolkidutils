@@ -69,7 +69,7 @@ const handleDispatch = async (event, client, config) => {
             let addedEmote = await TwitchEmote.findOne({ 'data.id': body.id });
             if (!addedEmote) return
             await sleep(60000)
-            delete_emote(debugChannel, addedEmote.id)
+            delete_emote(debugChannel, addedEmote.id, true)
         }
         updateChannel.send({ embeds: [embed] })
     }
