@@ -1,6 +1,6 @@
 {
   "settings": {
-    "deployCommands": true
+    "deployCommands": false
   },
   "theme": {
     "colors": {
