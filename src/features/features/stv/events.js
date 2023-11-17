@@ -10,6 +10,8 @@ const EMOTE_SET_UPDATE = 'emote_set.update'
 const CONFIGS = [{ name: 'erobb221', set: '61f463a74f8c353cf9fbac98', update_channel: '1171319663251181578' }, { name: 'coolkidarnie', set: '64e147f2e4d325845e86a5e7', update_channel: '990042551979499590' }]
 const DEBUG_CHANNEL = '990042551979499590'
 
+let pendingEmotes = {}
+
 module.exports = async (client) => {
     let sets = CONFIGS.map(config => `emote_set.update<object_id=${config.set}>`).join(",")
     let source = new EventSource(`https://events.7tv.io/v3@${sets}`);
@@ -63,11 +65,17 @@ const handleDispatch = async (event, client, config) => {
             const ownerRes = await fetch(`https://7tv.io/v3/users/${setJson.owner.id}`)
             const ownerJson = await ownerRes.json()
             console.log(`Processing emote ${JSON.stringify(emote)}`)
+            pendingEmotes[emote.id] = true
             let status = await create_emote(emote, undefined, ownerJson.connections[0], debugChannel)
+            pendingEmotes[emote.id] = false
             if (!status) notifyChannel = debugChannel
         } else {
             let addedEmote = await TwitchEmote.findOne({ 'data.id': body.id });
-            await sleep(60000)
+            await sleep(5000)
+            while (pendingEmotes[emote.id]) {
+                debugChannel.send(`Sleeping for pending emote "${emote.name}"`)
+                await sleep(30000)
+            }
             if (addedEmote) delete_emote(debugChannel, addedEmote.id, true)
         }
         updateChannel.send({ embeds: [embed] })
