@@ -1,6 +1,6 @@
 {
   "settings": {
-    "deployCommands": false
+    "deployCommands": true
   },
   "theme": {
     "colors": {
@@ -8,6 +8,11 @@
       "primary": "#0099FF",
       "info": "#E4F567",
       "fail": "#E53935"
+    }
+  },
+  "preferences": {
+    "emotes": {
+      "autoUpdate": true
     }
   }
 }

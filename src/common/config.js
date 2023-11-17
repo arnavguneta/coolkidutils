@@ -51,6 +51,12 @@ module.exports = {
         },
         getThemeColor(color) {
             return configs[main].theme.colors[color]
+        },
+        getEmotePreferences(key) {
+            return configs[main].preferences.emotes[key]
+        },
+        setEmotePreferences(key, value) {
+            return setConfig('main', `preferences.emotes.${key}`, value)
         }
     },
     cooldownsConfig: {
