@@ -166,17 +166,17 @@ const resolve_emote = async (client, emoteInput) => {
     const isEmoji = emojiRegex.test(emoteInput);
     let emoji;
     if (isSnowflakeID) {
-        emoji = client.emojis.resolve(emoteInput);
+        emoji = await client.emojis.resolve(emoteInput);
     } else if (isEmoji) {
         const emojiID = emoteInput.match(/\d+/)[0];
-        emoji = client.emojis.resolve(emojiID);
+        emoji = await client.emojis.resolve(emojiID);
     }
     return emoji
 }
 
 const delete_emote = async (channel, emoteInput, auto=false) => {
     if (auto && !mainConfig.getEmotePreferences('autoUpdate')) return 
-    let emoji = resolve_emote(channel.client, emoteInput)
+    let emoji = await resolve_emote(channel.client, emoteInput)
     console.log(emoji)
     if (emoji) {
         try {
