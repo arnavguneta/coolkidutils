@@ -7,7 +7,7 @@ const { sleep } = require('@common/helpers')
 const TwitchEmote = require('@models/twitch_emote')
 
 const EMOTE_SET_UPDATE = 'emote_set.update'
-const CONFIGS = [{ name: 'erobb221', set: '61f463a74f8c353cf9fbac98', update_channel: '1171319663251181578' }, { name: 'coolkidarnie', set: '64e147f2e4d325845e86a5e7', update_channel: '990042551979499590' }]
+const CONFIGS = [{ name: 'erobb221', default: '61f463a74f8c353cf9fbac98', set: '6387bfde8fc2b144669a85e0', update_channel: '1171319663251181578' }, { name: 'coolkidarnie', set: '64e147f2e4d325845e86a5e7', default: '64e147f2e4d325845e86a5e7', update_channel: '990042551979499590' }]
 const DEBUG_CHANNEL = '990042551979499590'
 
 let pendingEmotes = {}
@@ -59,8 +59,8 @@ const handleDispatch = async (event, client, config) => {
                 name: body.name,
                 id: body.id,
                 animated: body.animated,
-                type: event.body.id === currentConfig.set ? 'stv' : 'stv_set',
-                set: event.body.id === currentConfig.set ? 'default' : event.body.id,
+                type: event.body.id === currentConfig.default ? 'stv' : 'stv_set',
+                set: event.body.id === currentConfig.default ? 'default' : event.body.id,
             }
             const ownerRes = await fetch(`https://7tv.io/v3/users/${setJson.owner.id}`)
             const ownerJson = await ownerRes.json()
