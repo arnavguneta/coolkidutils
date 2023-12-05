@@ -12,7 +12,8 @@ const { mainConfig } = require('@common/config')
 let state = {};
 
 let emote_sets = {
-    "halloween": "6338e79d63c921dabe53ad84"
+    "halloween": "6338e79d63c921dabe53ad84",
+    "christmas": "6387bfde8fc2b144669a85e0"
 };
 
 let requiredRegistrationCommands = ['sync_emotes', 'sync_set', 'delete_set', 'toggle_emote_state']
@@ -69,8 +70,8 @@ let reset_state = (id) => {
 
 // add given emote to a server from the server list or a specific server from the emote list
 let create_emote = async (emote, emote_servers = [], twitch_user, channel, emote_size = 2, current_server = -1) => {
-    if (emote_servers.length === 0 && !mainConfig.getEmotePreferences('autoUpdate')) return false
     if (emote_servers.length === 0) {
+        if (!mainConfig.getEmotePreferences('autoUpdate')) return false
         let registration = await TwitchChannel.findOne({ id: twitch_user.id })
         if (!registration) return channel.send({ embeds: [embed({ description: `No registration found for ${user_option}'s channel`, error: true })], ephemeral: true })
         try {
