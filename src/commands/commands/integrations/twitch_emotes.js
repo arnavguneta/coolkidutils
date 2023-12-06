@@ -409,7 +409,7 @@ module.exports = {
             // }
             for (let emote_to_add of all_emotes) {
                 if (emote_to_add.data.active && emote_to_add.data.set != "default") {
-                    await TwitchEmote.updateMany({ 'channel.id': twitch_user.id, 'data.set': {'$ne': emote_to_add.set}, 'data.active': true, 'name': emote_to_add.name }, { $set: { 'data.active': false } })
+                    await TwitchEmote.updateMany({ 'channel.id': twitch_user.id, 'data.set': {'$ne': emote_to_add.data.set}, 'data.active': true, 'name': emote_to_add.name }, { $set: { 'data.active': false } })
                 }
             }
 
