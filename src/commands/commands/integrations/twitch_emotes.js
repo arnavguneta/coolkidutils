@@ -402,15 +402,10 @@ module.exports = {
             interaction.reply({ content: "Updating emotes..." })
 
             // if not added already, add the emote to a free server
-            // for (let emote_to_add of emotes) {
-            //     if (all_emote_names.includes(emote_to_add.name) && !set_id) continue
-            //     console.log(`Processing ${JSON.stringify(emote_to_add)}`)
-            //     await create_emote(emote_to_add, emote_servers, twitch_user, interaction.channel)
-            // }
-            for (let emote_to_add of all_emotes) {
-                if (emote_to_add.data.active && emote_to_add.data.set != "default") {
-                    await TwitchEmote.updateMany({ 'channel.id': twitch_user.id, 'data.set': {'$ne': emote_to_add.data.set}, 'data.active': true, 'name': emote_to_add.name }, { $set: { 'data.active': false } })
-                }
+            for (let emote_to_add of emotes) {
+                if (all_emote_names.includes(emote_to_add.name) && !set_id) continue
+                console.log(`Processing ${JSON.stringify(emote_to_add)}`)
+                await create_emote(emote_to_add, emote_servers, twitch_user, interaction.channel)
             }
 
             return interaction.channel.send({ content: "Done updating emotes" })
