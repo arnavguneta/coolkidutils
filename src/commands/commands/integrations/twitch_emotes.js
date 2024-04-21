@@ -16,7 +16,7 @@ let emote_sets = {
     "christmas": "6387bfde8fc2b144669a85e0"
 };
 
-let requiredRegistrationCommands = ['sync_emotes', 'sync_set', 'delete_set', 'toggle_emote_state']
+let requiredRegistrationCommands = ['sync_emotes', 'sync_set', 'delete_set', 'deactivate_set', 'toggle_emote_state']
 
 let fetch_emotes = async (links) => {
     let emotes = []
@@ -105,7 +105,7 @@ let create_emote = async (emote, emote_servers = [], twitch_user, channel, emote
             let emote_doc = await TwitchEmote.findOne({ 'channel.id': twitch_user.id, 'data.id': emote.id })
             if (emote.set !== 'default') {
                 if (emote_doc) return // if new set emote already exists, skip
-                await TwitchEmote.updateMany({ 'channel.id': twitch_user.id, 'data.set': {'$ne': emote.set}, 'data.active': true, 'name': emote.name }, { $set: { 'data.active': false } })
+                await TwitchEmote.updateMany({ 'channel.id': twitch_user.id, 'data.set': { '$ne': emote.set }, 'data.active': true, 'name': emote.name }, { $set: { 'data.active': false } })
                 await TwitchEmote.updateMany({ 'data.id': emote.id, 'data.active': true }, { $set: { 'data.active': false } })
             }
             let created_emoji
@@ -176,8 +176,8 @@ const resolve_emote = async (client, emoteInput) => {
     return emoji
 }
 
-const delete_emote = async (channel, emoteInput, auto=false) => {
-    if (auto && !mainConfig.getEmotePreferences('autoUpdate')) return 
+const delete_emote = async (channel, emoteInput, auto = false) => {
+    if (auto && !mainConfig.getEmotePreferences('autoUpdate')) return
     let emoji = await resolve_emote(channel.client, emoteInput)
     if (emoji) {
         try {
@@ -247,6 +247,22 @@ module.exports = {
             subcommand
                 .setName('delete_set')
                 .setDescription('Delete emotes from a registered channels emotes to its Discord servers')
+                .addStringOption(option =>
+                    option.setName('username')
+                        .setDescription('Twitch username for the channel')
+                        .setRequired(true)
+                        .setAutocomplete(true)
+                )
+                .addStringOption(option =>
+                    option.setName('set')
+                        .setDescription('7TV set id or set alias')
+                        .setRequired(true)
+                        .setAutocomplete(true)
+                ))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('deactivate_set')
+                .setDescription('Deactivate set emotes from a registered channels emotes to its Discord servers')
                 .addStringOption(option =>
                     option.setName('username')
                         .setDescription('Twitch username for the channel')
@@ -419,6 +435,23 @@ module.exports = {
                 console.log(`Processing ${JSON.stringify(emote.name)}`)
                 await rate_limit()
                 await delete_emote(interaction.channel, emote.id)
+            }
+            await interaction.channel.send(`Done deleting emotes.`)
+        } else if (subcommand === 'deactivate_set') {
+            interaction.reply({ content: "Deactivating emotes..." })
+            let param_set_id = interaction.options.getString('set')
+            set_id = emote_sets[param_set_id] || param_set_id
+            // get a list of all emote names and ids from all emote servers
+            console.log(set_id, registration.id)
+            const all_emotes = await TwitchEmote.find({ "channel.id": registration.id, "data.active": true, "data.set": set_id })
+            for (let emote of all_emotes) {
+                console.log(`Processing ${JSON.stringify(emote.name)}`)
+                emote.data.active = false
+                await emote.save()
+                await TwitchEmote.findOneAndUpdate(
+                    { "channel.id": registration.id, "name": emote.name, "data.set": "default" },
+                    { $set: { "data.active": true } }
+                  )
             }
             await interaction.channel.send(`Done deleting emotes.`)
         } else if (subcommand === 'delete_emote') {
