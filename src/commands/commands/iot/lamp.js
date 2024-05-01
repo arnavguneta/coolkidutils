@@ -41,18 +41,14 @@ module.exports = {
     async execute(interaction) {
         let subcommand = interaction.options.getSubcommand();
         if (subcommand === 'power') {
+            const powerState = interaction.options.getBoolean('state') ? 'on' : 'off'
             let powerEmbed = embed({
                 color: process.env.COLOR_PRIMARY,
                 authorName: 'Lamp Power State',
-                description: 'Turning lamp on...'
+                description: `Turning lamp ${powerState}...`
             }, true)
-            const powerState = interaction.options.getBoolean('state')
-            if (powerState) {
-                fetch('http://localhost:3001/api/v1/iot/lamp/power/on')
-            } else {
-                powerEmbed.description = 'Turning lamp off...'
-                fetch('http://localhost:3001/api/v1/iot/lamp/power/off')
-            }
+            
+            fetch(`http://localhost:3001/api/v1/iot/lamp/power/${powerState}`)
             interaction.reply({ embeds: [powerEmbed] })
         }
     }
