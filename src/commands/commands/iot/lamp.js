@@ -26,9 +26,7 @@ module.exports = {
                     option.setName('level')
                         .setDescription('Set brightness level')
                         .setRequired(true)
-                        .addChoice('High', 'high')
-                        .addChoice('Medium', 'medium')
-                        .addChoice('Low', 'low')
+                        .addChoices({ name: 'High', value: 'high' }, { name: 'Medium', value: 'medium' }, { name: 'Low', value: 'low' })
                 ))
         .addSubcommand(subcommand =>
             subcommand
@@ -46,7 +44,7 @@ module.exports = {
             authorName: 'Lamp',
             description: ''
         }, true)
-        
+
         if (subcommand === 'power') {
             const powerState = interaction.options.getBoolean('state') ? 'on' : 'off'
             fetch(`http://localhost:3001/api/v1/iot/lamp/power/${powerState}`)
