@@ -22,12 +22,13 @@ module.exports = {
             subcommand
                 .setName('brightness')
                 .setDescription('Control lamp brightness level')
-                .addIntegerOption(option =>
-                    option.setName('value')
-                        .setDescription('Set brightness 1-3')
+                .addStringOption(option =>
+                    option.setName('level')
+                        .setDescription('Set brightness level')
                         .setRequired(true)
-                        .setMinValue(1)
-                        .setMaxValue(3)
+                        .addChoice('High', 'high')
+                        .addChoice('Medium', 'medium')
+                        .addChoice('Low', 'low')
                 ))
         .addSubcommand(subcommand =>
             subcommand
@@ -40,16 +41,21 @@ module.exports = {
                 )),
     async execute(interaction) {
         let subcommand = interaction.options.getSubcommand();
+        let lampEmbed = embed({
+            color: process.env.COLOR_PRIMARY,
+            authorName: 'Lamp',
+            description: ''
+        }, true)
+        
         if (subcommand === 'power') {
             const powerState = interaction.options.getBoolean('state') ? 'on' : 'off'
-            let powerEmbed = embed({
-                color: process.env.COLOR_PRIMARY,
-                authorName: 'Lamp Power State',
-                description: `Turning lamp ${powerState}...`
-            }, true)
-            
             fetch(`http://localhost:3001/api/v1/iot/lamp/power/${powerState}`)
-            interaction.reply({ embeds: [powerEmbed] })
+            lampEmbed.setDescription(`Turning lamp ${powerState}...`)
+            interaction.reply({ embeds: [lampEmbed] })
+        } else if (subcommand == 'brightness') {
+            const brightnessLevel = interaction.options.getString('level')
+            lampEmbed.setDescription(`Turning lamp brightness to ${brightnessLevel}...`)
+            fetch(`http://localhost:3001/api/v1/iot/lamp/power/${powerState}`)
         }
     }
 };
