@@ -49,11 +49,11 @@ module.exports = {
             const powerState = interaction.options.getBoolean('state') ? 'on' : 'off'
             fetch(`http://localhost:3001/api/v1/iot/lamp/power/${powerState}`)
             lampEmbed.setDescription(`Turning lamp ${powerState}...`)
-            interaction.reply({ embeds: [lampEmbed] })
         } else if (subcommand == 'brightness') {
             const brightnessLevel = interaction.options.getString('level')
             lampEmbed.setDescription(`Turning lamp brightness to ${brightnessLevel}...`)
             fetch(`http://localhost:3001/api/v1/iot/lamp/brightness/${brightnessLevel}`)
         }
+        interaction.reply({ embeds: [lampEmbed] })
     }
 };
