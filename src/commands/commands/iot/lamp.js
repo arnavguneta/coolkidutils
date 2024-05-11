@@ -13,10 +13,11 @@ module.exports = {
             subcommand
                 .setName('power')
                 .setDescription('Control power state for lamp')
-                .addBooleanOption(option =>
+                .addStringOption(option =>
                     option.setName('state')
-                        .setDescription('Power state')
+                        .setDescription('Set power state')
                         .setRequired(true)
+                        .addChoices({ name: 'On', value: 'on' }, { name: 'Off', value: 'off' })
                 ))
         .addSubcommand(subcommand =>
             subcommand
@@ -46,7 +47,7 @@ module.exports = {
         }, true)
 
         if (subcommand === 'power') {
-            const powerState = interaction.options.getBoolean('state') ? 'on' : 'off'
+            const powerState = interaction.options.getString('state')
             fetch(`http://localhost:3001/api/v1/iot/lamp/power/${powerState}`)
             lampEmbed.setDescription(`Turning lamp ${powerState}...`)
         } else if (subcommand == 'brightness') {
